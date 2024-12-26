@@ -889,7 +889,7 @@ function launch_geekbench {
 	if [[ $VERSION == *4* && ($ARCH = *aarch64* || $ARCH = *arm*) ]]; then
 		echo -e "\nARM architecture not supported by Geekbench 4, use Geekbench 5 or 6."
 	elif [[ $VERSION == *4* && $ARCH != *aarch64* && $ARCH != *arm* ]]; then # Geekbench v4
-		GB_URL="https://cdn.geekbench.com/Geekbench-4.4.4-Linux.tar.gz"
+		GB_URL="https://github.com/Cryptominer937/yet-another-bench-script/releases/download/GB/Geekbench-4.4.4-Linux.tar.gz"
 		[[ "$ARCH" == *"x86"* ]] && GB_CMD="geekbench_x86_32" || GB_CMD="geekbench4"
 		GB_RUN="True"
 	elif [[ $VERSION == *5* || $VERSION == *6* ]]; then # Geekbench v5/6
@@ -900,12 +900,12 @@ function launch_geekbench {
 			echo -e "\nGeekbench $VERSION cannot run on 32-bit architectures. Skipping test."
 		else
 			if [[ $VERSION == *5* ]]; then # Geekbench v5
-				[[ $ARCH = *aarch64* || $ARCH = *arm* ]] && GB_URL="https://cdn.geekbench.com/Geekbench-5.5.1-LinuxARMPreview.tar.gz" \
-					|| GB_URL="https://cdn.geekbench.com/Geekbench-5.5.1-Linux.tar.gz"
+				[[ $ARCH = *aarch64* || $ARCH = *arm* ]] && GB_URL="https://github.com/Cryptominer937/yet-another-bench-script/releases/download/GB/Geekbench-5.5.1-LinuxARMPreview.tar.gzz" \
+					|| GB_URL="https://github.com/Cryptominer937/yet-another-bench-script/releases/download/GB/Geekbench-5.5.1-Linux.tar.gz"
 				GB_CMD="geekbench5"
 			else # Geekbench v6
-				[[ $ARCH = *aarch64* || $ARCH = *arm* ]] && GB_URL="https://cdn.geekbench.com/Geekbench-6.3.0-LinuxARMPreview.tar.gz" \
-					|| GB_URL="https://cdn.geekbench.com/Geekbench-6.3.0-Linux.tar.gz"
+				[[ $ARCH = *aarch64* || $ARCH = *arm* ]] && GB_URL="https://github.com/Cryptominer937/yet-another-bench-script/releases/download/GB/Geekbench-6.3.0-LinuxARMPreview.tar.gz" \
+					|| GB_URL="https://github.com/Cryptominer937/yet-another-bench-script/releases/download/GB/Geekbench-6.3.0-Linux.tar.gz"
 				GB_CMD="geekbench6"
 			fi
 			GB_RUN="True"
@@ -935,9 +935,9 @@ function launch_geekbench {
 			if grep -q "CentOS Linux 7" /etc/os-release; then
 				echo -e "\r\033[0K CentOS 7 and Geekbench have known issues relating to glibc (see issue #71 for details)"
 			fi
-			if [[ -z "$IPV4_CHECK" ]]; then
+			#if [[ -z "$IPV4_CHECK" ]]; then
 				# Geekbench test failed to download because host lacks IPv4 (cdn.geekbench.com = IPv4 only)
-				echo -e "\r\033[0KGeekbench releases can only be downloaded over IPv4. FTP the Geekbench files and run manually."
+			#	echo -e "\r\033[0KGeekbench releases can only be downloaded over IPv4. FTP the Geekbench files and run manually."
 			elif [[ $VERSION != *4* && $TOTAL_RAM_RAW -le 1048576 ]]; then
 				# Geekbench 5/6 test failed with low memory (<=1GB)
 				echo -e "\r\033[0KGeekbench test failed and low memory was detected. Add at least 1GB of SWAP or use GB4 instead (higher compatibility with low memory systems)."
