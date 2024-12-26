@@ -900,7 +900,7 @@ function launch_geekbench {
 			echo -e "\nGeekbench $VERSION cannot run on 32-bit architectures. Skipping test."
 		else
 			if [[ $VERSION == *5* ]]; then # Geekbench v5
-				[[ $ARCH = *aarch64* || $ARCH = *arm* ]] && GB_URL="https://github.com/Cryptominer937/yet-another-bench-script/releases/download/GB/Geekbench-5.5.1-LinuxARMPreview.tar.gzz" \
+				[[ $ARCH = *aarch64* || $ARCH = *arm* ]] && GB_URL="https://github.com/Cryptominer937/yet-another-bench-script/releases/download/GB/Geekbench-5.5.1-LinuxARMPreview.tar.gz" \
 					|| GB_URL="https://github.com/Cryptominer937/yet-another-bench-script/releases/download/GB/Geekbench-5.5.1-Linux.tar.gz"
 				GB_CMD="geekbench5"
 			else # Geekbench v6
