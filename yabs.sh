@@ -938,7 +938,7 @@ function launch_geekbench {
 			#if [[ -z "$IPV4_CHECK" ]]; then
 				# Geekbench test failed to download because host lacks IPv4 (cdn.geekbench.com = IPv4 only)
 			#	echo -e "\r\033[0KGeekbench releases can only be downloaded over IPv4. FTP the Geekbench files and run manually."
-			elif [[ $VERSION != *4* && $TOTAL_RAM_RAW -le 1048576 ]]; then
+			if [[ $VERSION != *4* && $TOTAL_RAM_RAW -le 1048576 ]]; then
 				# Geekbench 5/6 test failed with low memory (<=1GB)
 				echo -e "\r\033[0KGeekbench test failed and low memory was detected. Add at least 1GB of SWAP or use GB4 instead (higher compatibility with low memory systems)."
 			elif [[ $ARCH != *x86* ]]; then
