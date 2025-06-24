@@ -496,11 +496,14 @@ function disk_test {
 	fi
 
 	# run a quick test to generate the fio test file to be used by the actual tests
+	# Generate the fio test file. Using randwrite to pre-fill and scatter data,
+	# which better simulates the conditions for the subsequent randrw tests.
+	# This operation is quick as it only runs for 1 second.
 	echo -en "Generating fio test file..."
-	$FIO_CMD --name=setup --ioengine=libaio --rw=read --bs=64k --iodepth=64 --numjobs=2 --size=$FIO_SIZE --runtime=1 --gtod_reduce=1 --filename="$DISK_PATH/test.fio" --direct=1 --minimal &> /dev/null
+	$FIO_CMD --name=setup --ioengine=libaio --rw=randwrite --bs=64k --iodepth=64 --numjobs=2 --size=$FIO_SIZE --runtime=1 --gtod_reduce=1 --filename="$DISK_PATH/test.fio" --direct=1 --minimal &> /dev/null
 	echo -en "\r\033[0K"
 
-	# get array of block sizes to evaluate
+	# Get array of block sizes to evaluate
 	BLOCK_SIZES=("$@")
 
 	for BS in "${BLOCK_SIZES[@]}"; do
@@ -514,7 +517,6 @@ function disk_test {
 		DISK_TEST_W=$(echo "$DISK_TEST" | awk -F';' '{print $48}')
 		DISK_TEST=$(awk -v a="$DISK_TEST_R" -v b="$DISK_TEST_W" 'BEGIN { print a + b }')
 		DISK_RESULTS_RAW+=( "$DISK_TEST" "$DISK_TEST_R" "$DISK_TEST_W" "$DISK_IOPS" "$DISK_IOPS_R" "$DISK_IOPS_W" )
-
 		DISK_IOPS=$(format_iops "$DISK_IOPS")
 		DISK_IOPS_R=$(format_iops "$DISK_IOPS_R")
 		DISK_IOPS_W=$(format_iops "$DISK_IOPS_W")
