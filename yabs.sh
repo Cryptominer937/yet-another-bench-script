@@ -268,7 +268,47 @@ TOTAL_SWAP=$(format_size "$TOTAL_SWAP_RAW")
 echo -e "Swap       : $TOTAL_SWAP"
 # total disk size is calculated by adding all partitions of the types listed below (after the -t flags)
 TOTAL_DISK_RAW=$(df -t simfs -t ext2 -t ext3 -t ext4 -t btrfs -t xfs -t vfat -t exfat -t ntfs -t swap --total 2>/dev/null | grep total | awk '{ print $2 }')
-TOTAL_DISK=$(format_size "$TOTAL_DISK_RAW")
+
+# If df returns empty, set TOTAL_DISK_RAW to 0
+if [ -z "$TOTAL_DISK_RAW" ]; then
+  TOTAL_DISK_RAW=0
+fi
+ZFS_POOL_SIZE=0
+
+if command -v zpool &>/dev/null; then
+    ZFS_POOL_SIZE=$(zpool list -p -H 2>/dev/null | awk '{sum+=$2} END {print sum}')
+    
+fi
+
+TOTAL_DISK_SUM_BYTES=$(awk -v total_raw="$TOTAL_DISK_RAW" -v zfs_size="$ZFS_POOL_SIZE" 'BEGIN {print total_raw + zfs_size}')
+format_size() {
+    local bytes="$1"
+    # Check if bytes is empty or non-numeric
+    if [[ -z "$bytes" || ! "$bytes" =~ ^[0-9]+(\.[0-9]+)?(e[+-]?[0-9]+)?$ ]]; then
+        echo "0B"
+        return
+    fi
+#Use awk for robust floating-point calculation and formatting
+    # This awk script will convert bytes to the most appropriate unit.
+    awk -v b="$bytes" '
+    BEGIN {
+        if (b < 1024) {
+            printf "%.0fB\n", b
+        } else if (b < 1024^2) {
+            printf "%.2fKB\n", b / 1024
+        } else if (b < 1024^3) {
+            printf "%.2fMB\n", b / (1024^2)
+        } else if (b < 1024^4) {
+            printf "%.2fGB\n", b / (1024^3)
+        } else if (b < 1024^5) {
+            printf "%.2fTB\n", b / (1024^4)
+        } else { # For even larger units (PB)
+            printf "%.2fPB\n", b / (1024^5)
+        }
+    }'
+}
+
+TOTAL_DISK=$(format_size "$TOTAL_DISK_SUM_BYTES")
 echo -e "Disk       : $TOTAL_DISK"
 DISTRO=$(grep 'PRETTY_NAME' /etc/os-release | cut -d '"' -f 2 )
 echo -e "Distro     : $DISTRO"
