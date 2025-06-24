@@ -12,7 +12,7 @@
 #             performance via fio. The script is designed to not require any dependencies
 #             - either compiled or installed - nor admin privileges to run.
 
-YABS_VERSION="v2025-04-20"
+YABS_VERSION="v2025-06-24"
 
 echo -e '# ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## #'
 echo -e '#              Yet-Another-Bench-Script              #'
