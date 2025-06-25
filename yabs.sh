@@ -276,7 +276,7 @@ fi
 ZFS_POOL_SIZE=0
 
 if command -v zpool &>/dev/null; then
-    ZFS_POOL_SIZE=$(zpool list -p -H 2>/dev/null | awk '{sum+=$2} END {print sum}')
+    ZFS_POOL_SIZE=$(zfs list -o avail -p -H 2>/dev/null | awk '{sum+=$1} END {print sum}')
     
 fi
 
