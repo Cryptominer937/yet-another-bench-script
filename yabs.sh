@@ -608,7 +608,7 @@ elif [ -z "$SKIP_FIO" ]; then
         # Get the 'Avail' space directly for the detected path and explicitly for ZFS type
         # The 'Avail' column is the 4th field in `df -Th` output
         # Example: '7.3T', '104G', '17G'
-        avail_space_with_unit=$(df -Th | grep -w "$long" | awk '$2 == "zfs" {print $4; exit}')
+        avail_space_with_unit=$(df -Th | grep -w "$long" | awk '$2 == "zfs" {print $5; exit}')
 
         # If a valid free space value was extracted
         if [[ -n "$avail_space_with_unit" ]]; then
