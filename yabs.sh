@@ -328,8 +328,9 @@ function ip_info() {
 	[[ -n $LOCAL_CURL ]] && DL_CMD="curl -s" || DL_CMD="wget -qO-"
 
 	# declare local vars
-	local ip6me_resp net_type net_ip response country region region_code city isp org as
- 
+	local ip6me_resp net_type net_ip response
+	local country country_raw region region_raw region_code region_code_raw city city_raw isp isp_raw org org_raw as as_raw
+
 	ip6me_resp="$($DL_CMD http://ip6.me/api/)"
 	net_type="$(echo "$ip6me_resp" | cut -d, -f1)"
 	net_ip="$(echo "$ip6me_resp" | cut -d, -f2)"
@@ -341,14 +342,35 @@ function ip_info() {
 		return
 	fi
 
-	country=$(echo "$response" | sed -e 's/[{}]/''/g' | awk -v RS=',"' -F: '/^country/ {print $2}' | head -1 | sed 's/^"\(.*\)"$/\1/')
-	region=$(echo "$response" | sed -e 's/[{}]/''/g' | awk -v RS=',"' -F: '/^regionName/ {print $2}' | sed 's/^"\(.*\)"$/\1/')
-	region_code=$(echo "$response" | sed -e 's/[{}]/''/g' | awk -v RS=',"' -F: '/^region/ {print $2}' | head -1 | sed 's/^"\(.*\)"$/\1/')
-	city=$(echo "$response" | sed -e 's/[{}]/''/g' | awk -v RS=',"' -F: '/^city/ {print $2}' | sed 's/^"\(.*\)"$/\1/')
-	isp=$(echo "$response" | sed -e 's/[{}]/''/g' | awk -v RS=',"' -F: '/^isp/ {print $2}' | sed 's/^"\(.*\)"$/\1/')
-	org=$(echo "$response" | sed -e 's/[{}]/''/g' | awk -v RS=',"' -F: '/^org/ {print $2}' | sed 's/^"\(.*\)"$/\1/')
-	as=$(echo "$response" | sed -e 's/[{}]/''/g' | awk -v RS=',"' -F: '/^as/ {print $2}' | sed 's/^"\(.*\)"$/\1/')
-	
+	# Note: This is a basic unescaping and may not cover all complex JSON cases.
+	unescape_json_string() {
+		local input_string="$1"
+		echo "$input_string" | \
+		sed 's/\\u0026/\&/g' | \
+		sed "s/\\u0027/\'/g" | \
+		sed 's/\\u0022/\"/g' | \
+		sed 's/\\u002F/\//g' | \
+		sed 's/\\u005C/\\/g'
+	}
+
+	# Each raw value is extracted and then passed through the unescape_json_string function.
+	# The _raw variables retain the original escaped values for JSON_RESULT.
+	country_raw=$(echo "$response" | sed -n 's/.*"country":"\([^"]*\)".*/\1/p')
+	country=$(unescape_json_string "$country_raw")
+	region_raw=$(echo "$response" | sed -n 's/.*"regionName":"\([^"]*\)".*/\1/p')
+	region=$(unescape_json_string "$region_raw")
+	region_code_raw=$(echo "$response" | sed -n 's/.*"region":"\([^"]*\)".*/\1/p')
+	region_code=$(unescape_json_string "$region_code_raw")
+	city_raw=$(echo "$response" | sed -n 's/.*"city":"\([^"]*\)".*/\1/p')
+	city=$(unescape_json_string "$city_raw")
+	isp_raw=$(echo "$response" | sed -n 's/.*"isp":"\([^"]*\)".*/\1/p')
+	isp=$(unescape_json_string "$isp_raw")
+	org_raw=$(echo "$response" | sed -n 's/.*"org":"\([^"]*\)".*/\1/p')
+	org=$(unescape_json_string "$org_raw")
+	as_raw=$(echo "$response" | sed -n 's/.*"as":"\([^"]*\)".*/\1/p')
+	as=$(unescape_json_string "$as_raw")
+
+	# Print the formatted network information
 	echo
 	echo "$net_type Network Information:"
 	echo "---------------------------------"
@@ -373,7 +395,8 @@ function ip_info() {
 		echo "Country    : $country"
 	fi 
 
-	[[ -n $JSON ]] && JSON_RESULT+=',"ip_info":{"protocol":"'$net_type'","isp":"'$isp'","asn":"'$as'","org":"'$org'","city":"'$city'","region":"'$region'","region_code":"'$region_code'","country":"'$country'"}'
+	# IMPORTANT: JSON_RESULT now uses the _raw variables to preserve original JSON escapes.
+	[[ -n $JSON ]] && JSON_RESULT+=',"ip_info":{"protocol":"'$net_type'","isp":"'$isp_raw'","asn":"'$as_raw'","org":"'$org_raw'","city":"'$city_raw'","region":"'$region_raw'","region_code":"'$region_code_raw'","country":"'$country_raw'"}'
 }
 
 if [[ -n $JSON ]]; then
