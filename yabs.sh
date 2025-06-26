@@ -235,7 +235,8 @@ function format_size {
 echo -e
 echo -e "Basic System Information:"
 echo -e "---------------------------------"
-UPTIME=$(uptime | awk -F'( |,|:)+' '{d=h=m=0; if ($7=="min") m=$6; else {if ($7~/^day/) {d=$6;h=$8;m=$9} else {h=$6;m=$7}}} {print d+0,"days,",h+0,"hours,",m+0,"minutes"}')
+# update to fix Issue 92 using AWK instead of uptime --pretty because very old systems may not support --pretty.
+UPTIME=$(uptime | awk -F'( |,|:)+' '{d=h=m=0; if ($7=="min") m=$6; else {if ($7~/^day/) {d=$6; if ($9~/^min/) m=$8; else {h=$8;m=$9}} else {h=$6;m=$7}}} {print d+0,"days,",h+0,"hours,",m+0,"minutes"}')
 echo -e "Uptime     : $UPTIME"
 # check for local lscpu installs
 if command -v lscpu >/dev/null 2>&1; then
@@ -1020,6 +1021,7 @@ function launch_geekbench {
 	# check for curl vs wget
 	[[ -n $LOCAL_CURL ]] && DL_CMD="curl -s" || DL_CMD="wget -qO-"
 
+<<<<<<< HEAD
 	if [[ $VERSION == *4* && ($ARCH = *aarch64* || $ARCH = *arm*) ]]; then
 		echo -e "\nARM architecture not supported by Geekbench 4, use Geekbench 5 or 6."
 	elif [[ $VERSION == *4* && $ARCH != *aarch64* && $ARCH != *arm* ]]; then # Geekbench v4
@@ -1038,8 +1040,8 @@ function launch_geekbench {
 					|| GB_URL="https://cdn.geekbench.com/Geekbench-5.5.1-Linux.tar.gz"
 				GB_CMD="geekbench5"
 			else # Geekbench v6
-				[[ $ARCH = *aarch64* || $ARCH = *arm* ]] && GB_URL="https://cdn.geekbench.com/Geekbench-6.5.0-LinuxARMPreview.tar.gz" \
-					|| GB_URL="https://cdn.geekbench.com/Geekbench-6.5.0-Linux.tar.gz"
+				[[ $ARCH = *aarch64* || $ARCH = *arm* ]] && GB_URL="https://cdn.geekbench.com/Geekbench-6.4.0-LinuxARMPreview.tar.gz" \
+					|| GB_URL="https://cdn.geekbench.com/Geekbench-6.4.0-Linux.tar.gz"
 				GB_CMD="geekbench6"
 			fi
 			GB_RUN="True"
