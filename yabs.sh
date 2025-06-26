@@ -322,8 +322,9 @@ echo -e "VM Type    : $VIRT"
 # Initialize ONLINE string based on IPv4 check
 [[ -z "$IPV4_CHECK" ]] && ONLINE="\xE2\x9D\x8C Offline / " || ONLINE="\xE2\x9C\x94 Online / "
 
-# Initialize variable for IPv6 subnet information
+# Initialize variable for IPv6 subnet information and color
 IPV6_SUBNET_INFO=""
+SUBNET_COLOR=""
 
 # Check if IPv6 is online
 if [[ -z "$IPV6_CHECK" ]]; then
@@ -348,7 +349,18 @@ else
             # If an address with a prefix was found, extract the prefix length
             if [[ "$IPV6_ADDR_WITH_PREFIX" == *"/"* ]]; then
                 IPV6_SUBNET_SIZE=$(echo "$IPV6_ADDR_WITH_PREFIX" | cut -d'/' -f2)
-                IPV6_SUBNET_INFO=" /"$IPV6_SUBNET_SIZE
+
+                # Determine color based on IPv6 subnet size
+                # Smaller numbers = larger addressing (e.g., /48 is larger than /64)
+                # We want green for /64 or larger (smaller number) and red for smaller than /64 (larger number)
+                if (( IPV6_SUBNET_SIZE > 64 )); then
+                    SUBNET_COLOR="\033[31m" # Red for smaller than /64 (bad practice)
+                else
+                    SUBNET_COLOR="\033[32m" # Green for /64 or larger
+                fi
+
+                # Append colored subnet info
+                IPV6_SUBNET_INFO=" / IPv6 Subnet = ${SUBNET_COLOR}/$IPV6_SUBNET_SIZE\033[0m" # Reset color at the end
             fi
         fi
     fi
