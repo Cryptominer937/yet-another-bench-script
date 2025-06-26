@@ -230,7 +230,8 @@ function format_size {
 echo -e 
 echo -e "Basic System Information:"
 echo -e "---------------------------------"
-UPTIME=$(uptime | awk -F'( |,|:)+' '{d=h=m=0; if ($7=="min") m=$6; else {if ($7~/^day/) {d=$6;h=$8;m=$9} else {h=$6;m=$7}}} {print d+0,"days,",h+0,"hours,",m+0,"minutes"}')
+# update to fix Issue 92 using AWK instead of uptime --pretty because very old systems may not support --pretty.
+UPTIME=$(uptime | awk -F'( |,|:)+' '{d=h=m=0; if ($7=="min") m=$6; else {if ($7~/^day/) {d=$6; if ($9~/^min/) m=$8; else {h=$8;m=$9}} else {h=$6;m=$7}}} {print d+0,"days,",h+0,"hours,",m+0,"minutes"}')
 echo -e "Uptime     : $UPTIME"
 # check for local lscpu installs
 if command -v lscpu >/dev/null 2>&1; then
@@ -997,31 +998,43 @@ function launch_geekbench {
 	# check for curl vs wget
 	[[ -n $LOCAL_CURL ]] && DL_CMD="curl -s" || DL_CMD="wget -qO-"
 
-	if [[ $VERSION == *4* && ($ARCH = *aarch64* || $ARCH = *arm*) ]]; then
-		echo -e "\nARM architecture not supported by Geekbench 4, use Geekbench 5 or 6."
-	elif [[ $VERSION == *4* && $ARCH != *aarch64* && $ARCH != *arm* ]]; then # Geekbench v4
-		GB_URL="https://cdn.geekbench.com/Geekbench-4.4.4-Linux.tar.gz"
-		[[ "$ARCH" == *"x86"* ]] && GB_CMD="geekbench_x86_32" || GB_CMD="geekbench4"
-		GB_RUN="True"
-	elif [[ $VERSION == *5* || $VERSION == *6* ]]; then # Geekbench v5/6
-		if [[ $ARCH = *x86* && $GEEKBENCH_4 == *False* ]]; then # don't run Geekbench 5 if on 32-bit arch
-			echo -e "\nGeekbench $VERSION cannot run on 32-bit architectures. Re-run with -4 flag to use"
-			echo -e "Geekbench 4, which can support 32-bit architectures. Skipping Geekbench $VERSION."
-		elif [[ $ARCH = *x86* && $GEEKBENCH_4 == *True* ]]; then
-			echo -e "\nGeekbench $VERSION cannot run on 32-bit architectures. Skipping test."
-		else
-			if [[ $VERSION == *5* ]]; then # Geekbench v5
-				[[ $ARCH = *aarch64* || $ARCH = *arm* ]] && GB_URL="https://cdn.geekbench.com/Geekbench-5.5.1-LinuxARMPreview.tar.gz" \
-					|| GB_URL="https://cdn.geekbench.com/Geekbench-5.5.1-Linux.tar.gz"
-				GB_CMD="geekbench5"
-			else # Geekbench v6
-				[[ $ARCH = *aarch64* || $ARCH = *arm* ]] && GB_URL="https://cdn.geekbench.com/Geekbench-6.4.0-LinuxARMPreview.tar.gz" \
-					|| GB_URL="https://cdn.geekbench.com/Geekbench-6.4.0-Linux.tar.gz"
-				GB_CMD="geekbench6"
-			fi
-			GB_RUN="True"
-		fi
-	fi
+# Add tar check with notice to install tar to resolve Issue 99
+if [[ $VERSION == *4* && ($ARCH = *aarch64* || $ARCH = *arm*) ]]; then
+        echo -e "\nARM architecture not supported by Geekbench 4, use Geekbench 5 or 6."
+    elif [[ $VERSION == *4* && $ARCH != *aarch64* && $ARCH != *arm* ]]; then # Geekbench v4
+        if ! command -v tar &> /dev/null; then
+            echo "Error: 'tar' command not found. Please install 'tar' to extract Geekbench files." >&2
+            GB_RUN="False"
+        else
+            GB_URL="https://cdn.geekbench.com/Geekbench-4.4.4-Linux.tar.gz"
+            [[ "$ARCH" == *"x86"* ]] && GB_CMD="geekbench_x86_32" || GB_CMD="geekbench4"
+            GB_RUN="True"
+        fi
+    elif [[ $VERSION == *5* || $VERSION == *6* ]]; then # Geekbench v5/6
+        if [[ $ARCH = *x86* && $GEEKBENCH_4 == *False* ]]; then # don't run Geekbench 5 if on 32-bit arch
+            echo -e "\nGeekbench $VERSION cannot run on 32-bit architectures. Re-run with -4 flag to use"
+            echo -e "Geekbench 4, which can support 32-bit architectures. Skipping Geekbench $VERSION."
+        elif [[ $ARCH = *x86* && $GEEKBENCH_4 == *True* ]]; then
+            echo -e "\nGeekbench $VERSION cannot run on 32-bit architectures. Skipping test."
+        else
+            if ! command -v tar &> /dev/null; then
+                echo "Error: 'tar' command not found. Please install 'tar' to extract Geekbench files." >&2
+                GB_RUN="False"
+            else
+                if [[ $VERSION == *5* ]]; then # Geekbench v5
+                    [[ $ARCH = *aarch64* || $ARCH = *arm* ]] && GB_URL="https://cdn.geekbench.com/Geekbench-5.5.1-LinuxARMPreview.tar.gz" \
+                        || GB_URL="https://cdn.geekbench.com/Geekbench-5.5.1-Linux.tar.gz"
+                    GB_CMD="geekbench5"
+                else # Geekbench v6
+                    [[ $ARCH = *aarch64* || $ARCH = *arm* ]] && GB_URL="https://cdn.geekbench.com/Geekbench-6.4.0-LinuxARMPreview.tar.gz" \
+                        || GB_URL="https://cdn.geekbench.com/Geekbench-6.4.0-Linux.tar.gz"
+                    GB_CMD="geekbench6"
+                fi
+                GB_RUN="True"
+            fi
+        fi
+fi
+
 
 	if [[ $GB_RUN == *True* ]]; then # run GB test
 		echo -en "\nRunning GB$VERSION benchmark test... *cue elevator music*"
