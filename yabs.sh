@@ -319,9 +319,46 @@ echo -e "Kernel     : $KERNEL"
 VIRT=$(systemd-detect-virt 2>/dev/null)
 VIRT=${VIRT^^} || VIRT="UNKNOWN"
 echo -e "VM Type    : $VIRT"
+# Initialize ONLINE string based on IPv4 check
 [[ -z "$IPV4_CHECK" ]] && ONLINE="\xE2\x9D\x8C Offline / " || ONLINE="\xE2\x9C\x94 Online / "
-[[ -z "$IPV6_CHECK" ]] && ONLINE+="\xE2\x9D\x8C Offline" || ONLINE+="\xE2\x9C\x94 Online"
+
+# Initialize variable for IPv6 subnet information
+IPV6_SUBNET_INFO=""
+
+# Check if IPv6 is online
+if [[ -z "$IPV6_CHECK" ]]; then
+    # IPv6 is offline
+    ONLINE+="\xE2\x9D\x8C Offline"
+else
+    # IPv6 is online
+    ONLINE+="\xE2\x9C\x94 Online"
+
+    # Attempt to determine IPv6 subnet size only if 'ip' command is available
+    if command -v ip &> /dev/null; then
+        # Find the default IPv6 interface (e.g., eth0, ens33)
+        # This is now more robust by iterating through fields to find 'dev'
+        # and then printing the field directly after it.
+        IPV6_INTERFACE=$(ip -6 route show default | awk '{for(i=1;i<=NF;i++) if($i=="dev") {print $(i+1); exit}}')
+
+        if [[ -n "$IPV6_INTERFACE" ]]; then
+            # Get the first global IPv6 address with its prefix (e.g., 2001:db8::1/64)
+            # from the determined interface. 'scope global' ensures we get a public address.
+            IPV6_ADDR_WITH_PREFIX=$(ip -6 addr show dev "$IPV6_INTERFACE" scope global | awk '/inet6/ {print $2; exit}' | head -n 1)
+
+            # If an address with a prefix was found, extract the prefix length
+            if [[ "$IPV6_ADDR_WITH_PREFIX" == *"/"* ]]; then
+                IPV6_SUBNET_SIZE=$(echo "$IPV6_ADDR_WITH_PREFIX" | cut -d'/' -f2)
+                IPV6_SUBNET_INFO=" /"$IPV6_SUBNET_SIZE
+            fi
+        fi
+    fi
+    # Append subnet info if successfully determined, otherwise it remains empty
+    ONLINE+="$IPV6_SUBNET_INFO"
+fi
+
+# Print the final IPv4/IPv6 status with optional subnet information
 echo -e "IPv4/IPv6  : $ONLINE"
+
 
 # Function to get information from IP Address using ip-api.com free API
 function ip_info() {
