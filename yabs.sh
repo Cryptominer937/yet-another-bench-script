@@ -339,23 +339,24 @@ else
     # IPv6 is online
     ONLINE+="\xE2\x9C\x94 Online"
 
-    # Attempt to determine IPv6 subnet size only if 'ip' command is available
+	# Attempt to determine IPv6 prefix length only if 'ip' command is available
     if command -v ip &> /dev/null; then
-        # Find the default IPv6 interface (e.g., eth0, ens33)
-        # This is now more robust by iterating through fields to find 'dev'
-        # and then printing the field directly after it.
+		# Find the default IPv6 interface (e.g., eth0, ens33)
         IPV6_INTERFACE=$(ip -6 route show default | awk '{for(i=1;i<=NF;i++) if($i=="dev") {print $(i+1); exit}}')
 
         if [[ -n "$IPV6_INTERFACE" ]]; then
-            # Get the first global IPv6 address with its prefix (e.g., 2001:db8::1/64)
-            # from the determined interface. 'scope global' ensures we get a public address.
-            IPV6_ADDR_WITH_PREFIX=$(ip -6 addr show dev "$IPV6_INTERFACE" scope global | awk '/inet6/ {print $2; exit}' | head -n 1)
+			# Prefer the connected global IPv6 route prefix for the active interface,
+			# then fall back to the first stable global address prefix.
+			IPV6_ROUTE_WITH_PREFIX=$(ip -6 route show dev "$IPV6_INTERFACE" scope global | awk '$1 ~ /^[0-9A-Fa-f:]+\/[0-9]+$/ && $1 !~ /^fe80:/ {print $1; exit}')
+			IPV6_ADDR_WITH_PREFIX=$(ip -6 addr show dev "$IPV6_INTERFACE" scope global | awk '/inet6/ && $0 !~ /temporary|deprecated|tentative/ {print $2; exit}')
+			IPV6_PREFIX_SOURCE="$IPV6_ROUTE_WITH_PREFIX"
+			[[ -z "$IPV6_PREFIX_SOURCE" ]] && IPV6_PREFIX_SOURCE="$IPV6_ADDR_WITH_PREFIX"
 
-            # If an address with a prefix was found, extract the prefix length
-            if [[ "$IPV6_ADDR_WITH_PREFIX" == *"/"* ]]; then
-                IPV6_SUBNET_SIZE=$(echo "$IPV6_ADDR_WITH_PREFIX" | cut -d'/' -f2)
+			# If a prefix was found, extract the prefix length
+			if [[ "$IPV6_PREFIX_SOURCE" == *"/"* ]]; then
+				IPV6_SUBNET_SIZE=$(echo "$IPV6_PREFIX_SOURCE" | cut -d'/' -f2)
 
-                # Determine color based on IPv6 subnet size
+				# Determine color based on IPv6 prefix length
                 # Smaller numbers = larger addressing (e.g., /48 is larger than /64)
                 # We want green for /64 or larger (smaller number) and red for smaller than /64 (larger number)
                 if (( IPV6_SUBNET_SIZE > 64 )); then
@@ -364,12 +365,12 @@ else
                     SUBNET_COLOR="\033[32m" # Green for /64 or larger
                 fi
 
-                # Append colored subnet info
-                IPV6_SUBNET_INFO=" / IPv6 Subnet = ${SUBNET_COLOR}/$IPV6_SUBNET_SIZE\033[0m" # Reset color at the end
+				# Append colored prefix info
+				IPV6_SUBNET_INFO=" / IPv6 Prefix = ${SUBNET_COLOR}/$IPV6_SUBNET_SIZE\033[0m" # Reset color at the end
             fi
         fi
     fi
-    # Append subnet info if successfully determined, otherwise it remains empty
+	# Append prefix info if successfully determined, otherwise it remains empty
     ONLINE+="$IPV6_SUBNET_INFO"
 fi
 
